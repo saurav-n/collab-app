@@ -7,7 +7,7 @@ import { belongsToTask,canModifyTask } from "../middleware/task";
 const router = Router();
 
 
-router.post("/workspace/:workspaceId",auth,isNonGuestMemberOfWorkspace,createTask);
+router.post("/:workspaceId",auth,isNonGuestMemberOfWorkspace,createTask);
 router.get("/workspace/:workspaceId",auth,belongsToWorkspace,getWorkspaceTasks);
 router.get("/workspace/:workspaceId/:taskId",auth,belongsToWorkspace,getTask);
 router.put("/:taskId",auth,canModifyTask,updateTask);

@@ -210,6 +210,9 @@ export const getWorkSpaceInfo = asyncHandler(async (req, res) => {
             },
           },
         },
+        ownerInfo: {
+          $arrayElemAt: ["$ownerInfo", 0],
+        },
       },
     },
     {
@@ -229,13 +232,67 @@ export const getWorkSpaceInfo = asyncHandler(async (req, res) => {
         onGoingTasks: 1,
       },
     },
+    {
+      $unwind: {
+        path: "$members",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "members.userId",
+        foreignField: "_id",
+        as: "userInfo",
+      },
+    },
+    {
+      $unwind: {
+        path: "$userInfo",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $addFields: {
+        "members.userName": "$userInfo.userName",
+      },
+    },
+    {
+      $group: {
+        _id: "$_id",
+        name: { $first: "$name" },
+        description: { $first: "$description" },
+        avatar: { $first: "$avatar" },
+        isOwner: { $first: "$isOwner" },
+        projects: { $first: "$projects" },
+        tasks: { $first: "$tasks" },
+        totalProjects: { $first: "$totalProjects" },
+        totalTasks: { $first: "$totalTasks" },
+        completedTasks: { $first: "$completedTasks" },
+        overDueTasks: { $first: "$overDueTasks" },
+        ownerInfo: { $first: "$ownerInfo" },
+        onGoingTasks: { $first: "$onGoingTasks" },
+        members: { $push: "$members" },
+      },
+    },
+    {
+      $addFields: {
+        members: {
+          $filter: {
+            input: "$members",
+            as: "member",
+            cond: { $gt: [{ $type: "$$member._id" }, "missing"] },
+          },
+        },
+      },
+    },
   ]);
 
   console.log(workspaceInfo);
 
   return res.status(200).json(
     new AppResponse(200, "Workspace info retrieved successfully", {
-      workspace: workspaceInfo[0],
+      workspace: workspaceInfo[0] ?? {},
     })
   );
 });
@@ -247,7 +304,15 @@ export const createWorkspace = asyncHandler(async (req, res) => {
     throw new AppError("Bad Request", "Name and description are required", 400);
   }
 
+  console.log("req.file", req.file);
+
   const avatar = req.file;
+
+  if(!avatar){
+    throw new AppError("Bad Request", "Avatar is required", 400);
+  }
+
+  console.log("avatar", avatar);
 
   const uploadResponse = await uploadImage(avatar.path);
 
@@ -439,8 +504,7 @@ export const deleteWorkspace = asyncHandler(async (req, res) => {
 });
 
 export const getWorkspaceUser = asyncHandler(async (req, res) => {
-  const workspaceId = req.params.workspaceId;
-  const {userId}=req.body
+  const { workspaceId, userId } = req.params;
 
   if (!userId) {
     throw new AppError("Bad Request", "User id is required", 400);
@@ -459,17 +523,63 @@ export const getWorkspaceUser = asyncHandler(async (req, res) => {
   const isOwner = workspace.owner == userId;
 
   if (!member && !isOwner) {
-    throw new AppError("Bad Request", "User is not a member of the workspace", 400);
+    throw new AppError(
+      "Bad Request",
+      "User is not a member of the workspace",
+      400
+    );
   }
 
-  const user =await User.findById(userId)
+  const user = await User.findById(userId).select(
+    "-password -verificationCode -passwordResetToken -refreshToken -__v -createdAt -updatedAt"
+  );
 
-  if(!user){
-    throw new AppError("Not Found","User not found",404)
+  if (!user) {
+    throw new AppError("Not Found", "User not found", 404);
   }
 
   return res
     .status(200)
     .json(
-      new AppResponse(200, "Workspace users retrieved successfully", { user }))
+      new AppResponse(200, "Workspace users retrieved successfully", { user })
+    );
+});
+
+export const uploadWorkspaceAvatar = asyncHandler(async (req, res) => {
+  console.log('from uploadAvatar')
+  const { workspaceId } = req.params;
+  console.log("req.file", req.file);
+  const avatar = req.file;
+
+
+
+  if (!avatar) {
+    throw new AppError("Bad Request", "Avatar is required", 400);
+  }
+
+  const uploadResponse = await uploadImage(avatar.path);
+
+  const workspaceAvatar = {
+    public_id: uploadResponse.asset_id,
+    url: uploadResponse.secure_url,
+  }; 
+
+  console.log(uploadResponse);
+  const workspace = await Workspace.findById(workspaceId);
+
+  if (!workspace) {
+    throw new AppError("Not Found", "Workspace not found", 404);
+  }
+
+  workspace.avatar = workspaceAvatar;
+
+  await workspace.save();
+
+  return res
+    .status(200)
+    .json(
+      new AppResponse(200, "Workspace avatar updated successfully", {
+        workspace,
+      })
+    );
 });

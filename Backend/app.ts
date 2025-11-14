@@ -21,6 +21,12 @@ if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
 
+
+app.use(cors({
+  origin:  "http://localhost:3000",
+  credentials: true,
+}));
+
 //Limit req from same IP
 const limiter = rateLimit({
   max: 100,
@@ -34,10 +40,7 @@ app.use(express.json());
 
 app.use(express.urlencoded({ extended: true }));
 
-app.use(cors({
-  origin: process.env.FRONTEND_URL,
-  credentials: true,
-}));
+
 
 //cookie parser
 app.use(cookieParser());

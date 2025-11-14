@@ -7,7 +7,7 @@ import { belongsToProject, canModifyProject } from "../middleware/project";
 const router = Router();
 
 router.get("/workspace/:workspaceId",auth,belongsToWorkspace,getWorkSpaceProjects);
-router.post("/workspace/:workspaceId",auth,isNonGuestMemberOfWorkspace,createProject);
+router.post("/:workspaceId",auth,isNonGuestMemberOfWorkspace,createProject);
 router.get("/:projectId",auth,belongsToProject,getProject);
 router.patch("/:projectId",auth,canModifyProject,updateProject);
 router.delete("/:projectId",auth,canModifyProject,deleteProject);

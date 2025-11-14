@@ -7,10 +7,12 @@ import User from "../model/user";
 import Project from "../model/project";
 import Workspace from "../model/workspace";
 import { WorkspaceMember } from "../types/workspace";
+import { Request,Response } from "express";
 
 export const createTask = asyncHandler(async (req, res) => {
   const { name, description, dueDate, assigneeId, projectId } = req.body;
 
+  console.log(req.body);
   if (
     [name, description, dueDate, assigneeId, projectId].some(
       (v) => v === undefined
@@ -69,7 +71,7 @@ export const createTask = asyncHandler(async (req, res) => {
   const task = await Task.create({
     name,
     description,
-    dueDate: new Date(dueDate as string + "T00:00:00Z"),
+    dueDate: new Date((dueDate as string) + "T00:00:00Z"),
     assignee: assigneeId
       ? new mongoose.Types.ObjectId(assigneeId as string)
       : null,
@@ -163,7 +165,7 @@ export const updateTask = asyncHandler(async (req, res) => {
 
   task.name = name;
   task.description = description;
-  task.dueDate = new Date(dueDate as string + "T00:00:00Z");
+  task.dueDate = new Date((dueDate as string) + "T00:00:00Z");
   task.assignee = assigneeId
     ? new mongoose.Types.ObjectId(assigneeId as string)
     : null;
@@ -197,7 +199,15 @@ export const getWorkspaceTasks = asyncHandler(async (req, res) => {
 
   const match: any = { workspace: new mongoose.Types.ObjectId(workspaceId) };
 
-  const { status, assignee, dueDate,project, sortBy, limit = 10, page = 1 } = req.query;
+  const {
+    status,
+    assignee,
+    dueDate,
+    project,
+    sortBy,
+    limit = 10,
+    page = 1,
+  } = req.query;
 
   if (
     status &&
@@ -208,9 +218,9 @@ export const getWorkspaceTasks = asyncHandler(async (req, res) => {
     throw new AppError("Bad Request", "Invalid status value", 400);
   }
 
-  if(project){
+  if (project) {
     const projectExists = await Project.findById(project);
-    if(!projectExists){
+    if (!projectExists) {
       throw new AppError("Bad Request", "Invalid project", 400);
     }
     match.project = new mongoose.Types.ObjectId(project as string);
@@ -229,30 +239,64 @@ export const getWorkspaceTasks = asyncHandler(async (req, res) => {
   }
 
   if (
-    dueDate && typeof dueDate === "string" &&
+    dueDate &&
+    typeof dueDate === "string" &&
     new Date(dueDate).toString() === "Invalid Date"
   ) {
-    console.log(new Date(dueDate as string).toString() )
+    console.log(new Date(dueDate as string).toString());
     throw new AppError("Bad Request", "Invalid dueDate", 400);
   }
 
-  if(dueDate){
-    const date = new Date(dueDate as string + "T00:00:00Z");
+  if (dueDate) {
+    console.log(dueDate);
+    const date = new Date((dueDate as string) + "T00:00:00Z");
+    console.log(date);
     match.dueDate = { $lte: date };
   }
-
 
   const paginateOptions = {
     page: parseInt(page as string, 10),
     limit: parseInt(limit as string, 10),
   };
 
-  console.log(match)
+  console.log(match);
 
   const result = await Task.aggregatePaginate(
     [
       {
         $match: match,
+      },
+      {
+        $lookup: {
+          from: "projects",
+          localField: "project",
+          foreignField: "_id",
+          as: "projectDetail",
+          pipeline: [
+            {
+              $project: { name: 1 },
+            },
+          ],
+        },
+      },
+      {
+        $unwind: "$projectDetail",
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "assignee",
+          foreignField: "_id",
+          as: "assigneeDetail",
+          pipeline: [
+            {
+              $project: { userName: 1, email: 1 },
+            },
+          ],
+        },
+      },
+      {
+        $unwind: "$assigneeDetail",
       },
       {
         $sort: sortBy === "oldest" ? { createdAt: 1 } : { createdAt: -1 },
@@ -275,6 +319,8 @@ export const changeTaskStatus = asyncHandler(async (req, res) => {
   const taskId = req.params.taskId;
   const { status } = req.body;
 
+  console.log("from changeTaskStatus:", req.body);
+
   if (!status) {
     throw new AppError("Bad Request", "Status is required", 400);
   }
@@ -292,6 +338,8 @@ export const changeTaskStatus = asyncHandler(async (req, res) => {
       .json(new AppError("Not Found", "Task not found", 404));
   }
 
+  console.log("Updating status to:",task._id,status);
+
   task.status = status;
 
   await task.save();
@@ -300,3 +348,39 @@ export const changeTaskStatus = asyncHandler(async (req, res) => {
     .status(200)
     .json(new AppResponse(200, "Task status changed successfully", { task }));
 });
+
+// export const changeTaskStatus = (request: Request, response: Response) => {
+//   setTimeout(()=>{
+//     const taskId = request.params.taskId;
+//     const { status } = request.body;
+
+//     console.log("from changeTaskStatus:", request.body);
+
+//     if (!status) {
+//       throw new AppError("Bad Request", "Status is required", 400);
+//     }
+
+//     if (
+//       !["backlog", "todo", "in-progress", "in-review", "done"].includes(status)
+//     ) {
+//       response.status(400).json(new AppError("Bad Request", "Invalid status value", 400));
+//     }
+//     Task.findById(taskId).then((task) => {
+//       if (!task) {
+//         return response
+//           .status(404)
+//           .json(new AppError("Not Found", "Task not found", 404));
+//       }
+
+//       console.log("Updating status to:",task._id,status);
+
+//       task.status = status;
+
+//       task.save().then(()=>{
+//         response
+//           .status(200)
+//           .json(new AppResponse(200, "Task status changed successfully", { task }));
+//       })
+//     })
+//   },1000)
+// }

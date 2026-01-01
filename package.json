@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "react-share": "^5.2.2"
+    "react-share": "^5.2.2",
+    "socket.io": "^4.8.1"
   }
 }

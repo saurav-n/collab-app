@@ -1,13 +1,5 @@
-# ----------------------
-# Dependencies
-# ----------------------
 node_modules/
-.pnp/
-.pnp.js
-
-# ----------------------
-# Environment variables
-# ----------------------
+dist/
 .env
 .env.*
 !.env.example

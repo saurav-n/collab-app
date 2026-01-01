@@ -1,16 +1,16 @@
 import express from 'express';
-import globalErrorHandler from './src/controller/error';
+import globalErrorHandler from './controller/error';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import hpp from 'hpp';
-import authRouter from './src/routes/auth';
-import workspaceRouter from './src/routes/workspace';
-import projectRouter from './src/routes/project';
-import taskRouter from './src/routes/task';
+import authRouter from './routes/auth';
+import workspaceRouter from './routes/workspace';
+import projectRouter from './routes/project';
+import taskRouter from './routes/task';
 import cors from "cors"
-import messageRouter from './src/routes/message';
+import messageRouter from './routes/message';
 
 console.log('frontend url',process.env.FRONTEND_URL)
 const app = express();

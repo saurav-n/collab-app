@@ -3,7 +3,7 @@ dotenv.config({path:"./.env"});
 import mongoose from "mongoose";
 import app from "./app";
 import http from "http";
-import {initSocket} from "./src/socket"
+import {initSocket} from "./socket"
 
 const startServer=async ()=>{
   try {

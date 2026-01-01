@@ -61,3 +61,21 @@ workspaceSchema.methods.isTokenValid = function (token: string) {
 };
 
 export default mongoose.model("Workspace", workspaceSchema);
+
+export type WorkspaceDocument = mongoose.Document & {
+  name: string;
+  description: string;
+  members: Array<{
+    userId: mongoose.Types.ObjectId;
+    role: string;
+  }>;
+  owner: mongoose.Types.ObjectId;
+  avatar:{
+    public_id:String,
+    url:String
+  },
+  inviteTokens:Array<{
+    token:string,
+    expires:Date
+  }>
+};

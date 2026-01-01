@@ -19,6 +19,21 @@ export const isProjectOwner=asyncHandler(async (req,res,next)=>{
     return next()
 })
 
+export const isProjectMember=asyncHandler(async (req,res,next)=>{
+    const projectId=req.params.projectId
+    const project=await Project.findById(projectId)
+
+    if(!project){
+        throw new AppError("Not Found","Project not found",404)
+    }
+
+    if(!project.members.find((member:string)=>member==req.user?.id)&&project.owner.toString()!=req.user?.id){
+        throw new AppError("Unauthorized","Unauthorized access",401)
+    }
+
+    return next()
+})
+
 export const belongsToProject=asyncHandler(async (req,res,next)=>{
     const projectId=req.params.projectId
     const project=await Project.findById(projectId)

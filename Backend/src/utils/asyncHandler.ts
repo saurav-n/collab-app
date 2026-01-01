@@ -7,6 +7,7 @@ const asyncHandler=(handler:(req:Request,res:Response,next:NextFunction)=>Promis
         try {
             await handler(req,res,next)
         } catch (error) {
+            console.log('error',error);
             if(error instanceof TokenExpiredError){
                 return next(new AppError("TokenExpiredError","Token expired", 403));
             }

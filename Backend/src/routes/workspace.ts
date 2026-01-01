@@ -10,7 +10,8 @@ import {
   deleteWorkspace,
   getWorkSpaceInfo,
   getWorkspaceUser,
-  uploadWorkspaceAvatar
+  uploadWorkspaceAvatar,
+  getUserRole
 } from "../controller/workspace";
 import upload from "../middleware/multer";
 import { auth, protect } from "../middleware/auth";
@@ -48,5 +49,6 @@ router.get("/:workspaceId/:userId/getMember", auth, belongsToWorkspace, getWorks
 router.patch("/:workspaceId", auth, isWorkspaceOwner, updateWorkspace);
 router.delete("/:workspaceId", auth, isWorkspaceOwner, deleteWorkspace);
 router.patch("/:workspaceId/avatar", auth, isWorkspaceOwner, upload.single("avatar"), uploadWorkspaceAvatar);
+router.get("/:workspaceId/:userId/role", auth, belongsToWorkspace, getUserRole);
 
 export default router;

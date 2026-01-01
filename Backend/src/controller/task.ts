@@ -59,6 +59,16 @@ export const createTask = asyncHandler(async (req, res) => {
   if (!project) {
     throw new AppError("Bad Request", "Invalid project", 400);
   }
+
+  if(
+    project.owner.toString()!==assigneeId &&
+    !project.members.find(
+      (member : string)=>member.toString()===assigneeId
+    )
+  ){
+    throw new AppError("Bad Request","Assignee must be a member of the project",400)
+  }
+
   if (
     !new Date(dueDate).getTime() ||
     isNaN(new Date(dueDate).getTime()) ||
@@ -274,7 +284,7 @@ export const getWorkspaceTasks = asyncHandler(async (req, res) => {
           as: "projectDetail",
           pipeline: [
             {
-              $project: { name: 1 },
+              $project: { name: 1,owner:1 },
             },
           ],
         },

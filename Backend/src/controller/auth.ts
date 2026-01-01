@@ -14,6 +14,7 @@ export const register = asyncHandler(
     }
     const existingUser = await User.findOne({ $or: [{ email }, { userName }] });
     if (existingUser) {
+      console.log('existing user',existingUser)
       throw new AppError(
         "Invalid params",
         "User with this email or username already exists",
@@ -108,6 +109,7 @@ export const resendCode = asyncHandler(
 
 export const login = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
+    console.log('inside login')
     const { email, password, userName } = req.body;
     if (!email && !userName) {
       throw new AppError(

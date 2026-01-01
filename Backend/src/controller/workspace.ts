@@ -72,6 +72,22 @@ export const getWorkSpaceInfo = asyncHandler(async (req, res) => {
         localField: "_id",
         foreignField: "workspace",
         as: "projects",
+        pipeline:[
+          {$lookup:{
+            from:"users",
+            localField:"owner",
+            foreignField:"_id",
+            as:"owner",
+            pipeline:[
+              {$project:{
+                _id:1,
+                userName:1,
+                email:1
+              }}
+            ]
+          }},
+          {$unwind:"$owner"}
+        ]
       },
     },
     {
@@ -387,11 +403,13 @@ export const joinWorkspace = asyncHandler(async (req, res) => {
 });
 
 export const removeWorkspaceMembers = asyncHandler(async (req, res) => {
-  const { memberId } = req.body;
+  const { memberId } = req.params;
 
   if (!memberId) {
     throw new AppError("Bad Request", "Member id is required", 400);
   }
+
+  console.log('memberId',memberId)
 
   const workspaceId = req.params.workspaceId;
 
@@ -402,18 +420,26 @@ export const removeWorkspaceMembers = asyncHandler(async (req, res) => {
   }
 
   const member = workspace.members.find(
-    (member: WorkspaceMember) => member.userId == memberId
+    (member: WorkspaceMember) => (member.userId as unknown as mongoose.Types.ObjectId).toString() == memberId
   );
 
   if (!member) {
     throw new AppError("Bad Request", "Member not found", 400);
   }
 
-  workspace.members = (workspace.members.filter(
-    (member: WorkspaceMember) => member.userId == memberId
-  ) != memberId) as any;
+  console.log('now deleting workspace member',member)
+
+  console.log('filter',workspace.members.filter( (m:WorkspaceMember)=>m.userId!==member.userId))
+
+  workspace.members = workspace.members.filter(
+    (m: WorkspaceMember) => m.userId !== member.userId
+  )  as any;
+
+  console.log(workspace)
 
   await workspace.save();
+
+  console.log('workspace.members',workspace.members)
 
   return res.status(200).json(
     new AppResponse(200, "Workspace members removed successfully", {
@@ -538,10 +564,17 @@ export const getWorkspaceUser = asyncHandler(async (req, res) => {
     throw new AppError("Not Found", "User not found", 404);
   }
 
+
   return res
     .status(200)
     .json(
-      new AppResponse(200, "Workspace users retrieved successfully", { user })
+      new AppResponse(200, "Workspace users retrieved successfully", { 
+        user:{
+          ...user['_doc'],
+          role:isOwner?"owner":member.role,
+          userId:isOwner?user?._id:member.userId
+        }
+       })
     );
 });
 
@@ -583,3 +616,20 @@ export const uploadWorkspaceAvatar = asyncHandler(async (req, res) => {
       })
     );
 });
+
+export const getUserRole=asyncHandler(async(req,res)=>{
+  const {workspaceId,userId}=req.params;
+  const workspace=await Workspace.findById(workspaceId);
+  if(!workspace){
+    throw new AppError("Not Found","Workspace not found",404);
+  }
+  if(workspace.owner==userId){
+    return res.status(200).json(new AppResponse(200,"Owner role retrieved successfully",{role:"owner"}));
+  }
+  const member=workspace.members.find((member:WorkspaceMember)=>member.userId==userId);
+  if(!member){
+    throw new AppError("Not Found","User not found",404);
+  }
+  return res.status(200).json(new AppResponse(200,"User role retrieved successfully",{role:member.role}));
+})
+

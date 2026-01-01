@@ -14,6 +14,12 @@ const projectSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Workspace",
   },
+  members:[
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    }
+  ],
   owner: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
@@ -37,3 +43,12 @@ const projectSchema = new mongoose.Schema({
 // });
 
 export default mongoose.model("Project", projectSchema);
+
+
+export type ProjectDocument = mongoose.Document & {
+  name: string;
+  description: string;
+  workspace: mongoose.Types.ObjectId;
+  members: Array<string>;
+  owner: mongoose.Types.ObjectId;
+};

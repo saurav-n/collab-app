@@ -10,6 +10,7 @@ import workspaceRouter from './src/routes/workspace';
 import projectRouter from './src/routes/project';
 import taskRouter from './src/routes/task';
 import cors from "cors"
+import messageRouter from './src/routes/message';
 
 console.log('frontend url',process.env.FRONTEND_URL)
 const app = express();
@@ -23,17 +24,20 @@ if (process.env.NODE_ENV === "development") {
 
 
 app.use(cors({
-  origin:  "http://localhost:3000",
+  origin:  [
+    "http://localhost:3000",
+    "http://192.168.101.17:3000"
+  ],
   credentials: true,
 }));
 
 //Limit req from same IP
-const limiter = rateLimit({
-  max: 100,
-  windowMs: 60 * 60 * 1000,
-  message: "Too many requests from this IP, please try again in an hour!",
-});
-app.use("/api", limiter);
+// const limiter = rateLimit({
+//   max: 100,
+//   windowMs: 60 * 60 * 1000,
+//   message: "Too many requests from this IP, please try again in an hour!",
+// });
+// app.use("/api", limiter);
 
 //Body parser, reading from body to req.body
 app.use(express.json());
@@ -65,6 +69,7 @@ app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/workspace", workspaceRouter);
 app.use("/api/v1/project", projectRouter);
 app.use("/api/v1/task", taskRouter);
+app.use("/api/v1/message", messageRouter);
 
 
 
